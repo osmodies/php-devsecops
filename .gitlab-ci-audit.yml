@@ -5,20 +5,38 @@ services:
 
 stages:
   - build
+  - test
+  - release
+  - preprod
   - integration
   - prod
 
-sast:
+build:
   stage: build
   script:
-    # Download PHPStan docker container
-    - docker pull phpstan/phpstan
-    # Run docker container, please refer docker security course, if this doesn't make sense to you.
-    - docker run -v $(pwd):/src --rm phpstan/phpstan analyse --error-format=json /src | tee phpstan-output.json
+    - echo "This is a build step"
+
+test:
+  stage: test
+  script:
+    - echo "This is a test step"
+
+oast-backend:
+  stage: build 
+  image: php:7.4
+  before_script:
+    - php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+    - php composer-setup.php --install-dir=/usr/local/bin --filename=composer
+    - php -r "unlink('composer-setup.php');"
+    - apt update
+    - apt install unzip
+  script:
+    - composer install
+    - composer audit -f json | tee composer-output.json
   artifacts:
-    paths: [phpstan-output.json]
+    paths: [composer-output.json]
     when: always
-  allow_failure: true   #<--- allow the build to fail but don't mark it as such
+  allow_failure: true
 
 integration:
   stage: integration
